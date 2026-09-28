@@ -1,0 +1,200 @@
+// VOLT229 — Prisma Schema — PostgreSQL
+// Production ready for Bénin market
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MTN_MOMO
+  MOOV_MONEY
+  FEDAPAY
+  CASH_ON_DELIVERY
+}
+
+enum ProductCategory {
+  PERFORMANCE
+  LIFESTYLE
+  RETRO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  phone        String?  @unique // +229 format
+  passwordHash String?  // bcrypt
+  googleId     String?  @unique
+  name         String?
+  role         UserRole @default(CUSTOMER)
+  
+  // Basketball profile
+  shoeSize     Float?   // ex: 42.5
+  position     String?  // meneur, arrière, etc.
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders       Order[]
+  cartItems    CartItem[]
+  reviews      Review[]
+  chatSessions ChatSession[]
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  brand       String
+  category    ProductCategory
+  description String          @db.Text
+  price       Int             // XOF, integer (ex: 89000)
+  oldPrice    Int?
+  tech        String[]        // ["ArcFoam", "VoltWeave"]
+  isNew       Boolean         @default(false)
+  featured    Boolean         @default(false)
+  rating      Float           @default(0)
+  reviewsCount Int            @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  variants    ProductVariant[]
+  reviews     Review[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  size      Float   // 38-47
+  colorName String
+  colorHex  String  // #C6FF3D
+  sku       String  @unique
+  stock     Int     @default(0)
+  images    String[] // S3 URLs
+
+  @@unique([productId, size, colorName])
+  @@index([size])
+  @@index([colorHex])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String?  // nullable for guest cart (session)
+  sessionId String?  // guest session
+  productId String
+  variantId String?  // link to variant for exact stock check
+  size      Float
+  colorName String
+  qty       Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique // VOLT-229-XXXX
+  userId          String?
+  sessionId       String?       // guest
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   PaymentMethod
+  paymentRef      String?       // MTN MoMo transaction ID / Fedapay ref
+  subtotal        Int
+  deliveryFee     Int
+  total           Int
+  city            String        // Cotonou, Porto-Novo, etc.
+  address         String?       @db.Text
+  phone           String
+  customerName    String?
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user  User?       @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  name      String // snapshot
+  brand     String
+  size      Float
+  colorName String
+  price     Int    // snapshot at purchase
+  qty       Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User?         @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+
+  @@index([sessionId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // user | assistant | system
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}

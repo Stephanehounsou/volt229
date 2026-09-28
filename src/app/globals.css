@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-volt-black: #0D0D0F;
+  --color-volt-lime: #C6FF3D;
+  --color-volt-red: #E63946;
+  --color-volt-cloud: #F5F5F0;
+  --color-volt-slate: #8A8F98;
+  --font-display: var(--font-bebas);
+  --font-body: var(--font-manrope);
+}
+
+:root {
+  --background: #0D0D0F;
+  --foreground: #F5F5F0;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C6FF3D #0D0D0F;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: #0D0D0F;
+}
+
+body {
+  background: #0D0D0F;
+  color: #F5F5F0;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-bebas), Impact, sans-serif;
+  letter-spacing: 0.02em;
+  line-height: 0.9;
+}
+
+.text-volt {
+  color: #C6FF3D;
+}
+
+.bg-volt {
+  background-color: #C6FF3D;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0D0D0F;
+}
+::-webkit-scrollbar-thumb {
+  background: #C6FF3D;
+  border-radius: 10px;
+}
+
+/* Grain texture overlay */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Hide scrollbar for marquee */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
